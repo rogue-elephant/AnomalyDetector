@@ -11,26 +11,34 @@ namespace Covid19Analyser
         static readonly string _dataPath = Path.Combine(Environment.CurrentDirectory, "Data");
         static void Main(string[] args)
         {
-            ProcessData<ProductSalesData>("product-sales.csv", nameof(ProductSalesData.numSales));
-            ProcessData<CoronavirusData>("full_data.csv", nameof(CoronavirusData.NewCases));
-        }
+            // ProcessData<ProductSalesData>("product-sales.csv", nameof(ProductSalesData.numSales));
+            // ProcessData<CoronavirusData>("full_data.csv", nameof(CoronavirusData.NewCases));
 
-        static void ProcessData<TDataType>(string fileName, string inputColumnName, char separatorCharacter = ',') where TDataType : class, new()
-        {
-            var filePath = Path.Combine(_dataPath, fileName);
-            // Create MLContext to be shared across the model creation workflow objects 
-            MLContext mlContext = new MLContext();
+            var filePath = Path.Combine(_dataPath, "full_data.csv");
 
-            // //STEP 1: Common data loading configuration
-            // IDataView dataView = mlContext.Data.LoadFromTextFile<TDataType>(path: filePath, hasHeader: true, separatorChar: separatorCharacter);
-            // var values = mlContext.Data.CreateEnumerable<TDataType>(dataView, reuseRowObject: false);
-            // var count = values.Count();
-
-            AnomalyDetector<TDataType>
+            AnomalyDetector<CoronavirusData, CoronavirusPrediction>
                 .SetContext()
                 .LoadDataFromFile(filePath)
-                .SetOptions(new AnomalyOptions(inputColumnName, "Prediction"))
+                .ManipulateData(data => {
+                        data = from dailyCounts in data
+                        let parsedDate = DateTime.Parse(dailyCounts.Date)
+                        orderby parsedDate
+                        select dailyCounts;
+                    })
+                .SetOptions(new AnomalyOptions(nameof(CoronavirusData.NewCases), "Prediction"))
                 .DetectSpike(Console.Out);
+
         }
+
+        // static void ProcessData<TDataType>(string fileName, string inputColumnName, char separatorCharacter = ',') where TDataType : class, new()
+        // {
+        //     var filePath = Path.Combine(_dataPath, fileName);
+
+        //     AnomalyDetector<TDataType>
+        //         .SetContext()
+        //         .LoadDataFromFile(filePath)
+        //         .SetOptions(new AnomalyOptions(inputColumnName, "Prediction"))
+        //         .DetectSpike(Console.Out);
+        // }
     }
 }

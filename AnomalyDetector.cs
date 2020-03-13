@@ -1,35 +1,64 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.ML;
 
-public sealed class AnomalyDetector<TData> : IAnomalyDetectorLoadData<TData>, IAnomalyDetectorDetection where TData : class, new()
+public class AnomalyDetectorBase
+{
+
+}
+
+public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<TInputType, TAnomalyOutputType>
+    where TInputType : class, new()
+    where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
 {
     private readonly MLContext _mlContext;
     private AnomalyOptions _options;
     private IDataView _dataView;
-    private IEnumerable<TData> _data;
-    private AnomalyDetector(MLContext mlContext) => _mlContext = mlContext;
+    private IEnumerable<TInputType> _data;
+    protected AnomalyDetector(MLContext mlContext) => _mlContext = mlContext;
 
-    public static IAnomalyDetectorLoadData<TData> SetContext(MLContext mlContext = null) => new AnomalyDetector<TData>(mlContext ?? new MLContext());
+    public static IAnomalyDetectorLoadData<TInputType> SetContext(MLContext mlContext = null) => new AnomalyDetector<TInputType, TAnomalyOutputType>(mlContext ?? new MLContext());
 
-    public IAnomalyDetectorSetOptions LoadData(IEnumerable<TData> data)
+    public IAnomalyDetectorSetOptions<TInputType> LoadData(IEnumerable<TInputType> data)
     {
         _data = data;
         return this;
     }
-    public IAnomalyDetectorSetOptions LoadDataFromFile(string path, bool hasHeaders = true, char seperator = ',')
+    public IAnomalyDetectorSetOptions<TInputType> LoadDataFromFile(string path, bool hasHeaders = true, char seperator = ',')
     {
-        _dataView = _mlContext.Data.LoadFromTextFile<TData>(path: path, hasHeader: hasHeaders, separatorChar: seperator);
-        return LoadData(_mlContext.Data.CreateEnumerable<TData>(_dataView, reuseRowObject: false));
+        _dataView = _mlContext.Data.LoadFromTextFile<TInputType>(path: path, hasHeader: hasHeaders, separatorChar: seperator);
+        return LoadData(_mlContext.Data.CreateEnumerable<TInputType>(_dataView, reuseRowObject: false));
     }
 
-    public IAnomalyDetectorDetection SetOptions(AnomalyOptions options)
+    public IAnomalyDetectorDetection<TInputType> SetOptions(AnomalyOptions options)
     {
         _options = options;
         return this;
     }
+
+    public IAnomalyDetectorDetection<TInputType> ManipulateData(Action<IEnumerable<TInputType>> action)
+    {
+        action(_data);
+        return this;
+    }
+
+    protected virtual IEnumerable<string> getColumnNames() => GetProps(typeof(TAnomalyOutputType));
+    private IEnumerable<string> GetProps(Type? type)
+    {
+        if (!(type is null))
+            foreach (var propName in 
+                (
+                    (type.GetProperties()?.Select(x => x.Name) ?? Enumerable.Empty<string>())
+                    .Concat(type.GetFields()?.Select(x => x.Name) ?? Enumerable.Empty<string>()))
+                    .Where(prop => prop != nameof(IAnomalyDetectionOutput.Prediction))
+                )
+                yield return propName;
+    }
+    private string getColumnValuesString(IEnumerable<string> columnNames, TAnomalyOutputType dataRow) =>
+        string.Join('\t', dataRow.GetType().GetProperties().Where(prop => columnNames.Contains(prop.Name)).Select(x => x.GetValue(dataRow)));
     
 
     /// <summary>
@@ -37,7 +66,7 @@ public sealed class AnomalyDetector<TData> : IAnomalyDetectorLoadData<TData>, IA
     /// It's important to detect these suspicious rare items, events, or observations in a timely manner to be minimized.
     /// The following approach can be used to detect a variety of anomalies such as: outages, cyber-attacks, or viral web content.
     /// </summary>
-    public IAnomalyDetectorDetection DetectSpike(TextWriter output)
+    public IAnomalyDetectorDetection<TInputType> DetectSpike(TextWriter output)
     {
         output.WriteLine("Detect temporary changes in pattern");
 
@@ -55,13 +84,15 @@ public sealed class AnomalyDetector<TData> : IAnomalyDetectorLoadData<TData>, IA
         //Apply data transformation to create predictions.
         IDataView transformedData = iidSpikeTransform.Transform(_dataView);
 
-        var predictions = _mlContext.Data.CreateEnumerable<ProductSalesPrediction>(transformedData, reuseRowObject: false);
+        var predictions = _mlContext.Data.CreateEnumerable<TAnomalyOutputType>(transformedData, reuseRowObject: false);
 
-        output.WriteLine("Alert\tScore\tP-Value");
+        var columnNames = getColumnNames().ToList();
+
+        output.WriteLine($"Alert\t{string.Join('\t', columnNames)}\tScore\tP-Value");
 
         foreach (var p in predictions)
         {
-            var results = $"{p.Prediction[0]}\t{p.Prediction[1]:f2}\t{p.Prediction[2]:F2}";
+            var results = $"{p.Prediction?[0]}\t{getColumnValuesString(columnNames, p)}\t{p.Prediction?[1]:f2}\t{p.Prediction?[2]:F2}";
 
             if (p.Prediction[0] == 1)
             {
@@ -79,7 +110,7 @@ public sealed class AnomalyDetector<TData> : IAnomalyDetectorLoadData<TData>, IA
     /// These persistent changes last much longer than spikes and could indicate catastrophic event(s).
     /// Change points are not usually visible to the naked eye, but can be detected in your data using approaches such as in the following method.
     /// </summary>
-    public IAnomalyDetectorDetection DetectChangepoint(TextWriter output)
+    public IAnomalyDetectorDetection<TInputType> DetectChangepoint(TextWriter output)
     {
         output.WriteLine("Detect Persistent changes in pattern");
 
@@ -95,9 +126,9 @@ public sealed class AnomalyDetector<TData> : IAnomalyDetectorLoadData<TData>, IA
 
         //Apply data transformation to create predictions.
         IDataView transformedData = iidChangePointTransform.Transform(_dataView);
-        var predictions = _mlContext.Data.CreateEnumerable<ProductSalesPrediction>(transformedData, reuseRowObject: false);
+        var predictions = _mlContext.Data.CreateEnumerable<TAnomalyOutputType>(transformedData, reuseRowObject: false);
 
-        output.WriteLine("Alert\tScore\tP-Value\tMartingale value");
+        output.WriteLine($"Alert\t{getColumnNames()}Score\tP-Value\tMartingale value");
 
         foreach (var p in predictions)
         {
@@ -116,7 +147,12 @@ public sealed class AnomalyDetector<TData> : IAnomalyDetectorLoadData<TData>, IA
     static IDataView CreateEmptyDataView(MLContext mlContext)
     {
         // Create empty DataView. We just need the schema to call Fit() for the time series transforms
-        IEnumerable<TData> enumerableData = new List<TData>();
+        IEnumerable<TAnomalyOutputType> enumerableData = new List<TAnomalyOutputType>();
         return mlContext.Data.LoadFromEnumerable(enumerableData);
     }
+}
+
+public class AnomalyDetector<TAnomalyOutputType> : AnomalyDetector<TAnomalyOutputType, TAnomalyOutputType> where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
+{
+    protected AnomalyDetector(MLContext mlContext) : base(mlContext) {}
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.ML;
 
 public readonly struct AnomalyOptions
