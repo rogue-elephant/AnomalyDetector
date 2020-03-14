@@ -3,8 +3,9 @@ using System.IO;
 using Microsoft.ML;
 using System.Collections.Generic;
 using System.Linq;
+using AnomalyDetector.Utilities;
 
-namespace Covid19Analyser
+namespace AnomalyDetector.CLI
 {
     class Program
     {
@@ -21,12 +22,13 @@ namespace Covid19Analyser
                 .LoadDataFromFile(filePath)
                 .ManipulateData(data => {
                         data = from dailyCounts in data
+                        where dailyCounts.Location == "Worldwide"
                         let parsedDate = DateTime.Parse(dailyCounts.Date)
                         orderby parsedDate
                         select dailyCounts;
                     })
-                .SetOptions(new AnomalyOptions(nameof(CoronavirusData.NewCases)))
-                .DetectSpike(Console.Out);
+                .SetOptions(new AnomalyDetectorOptions(nameof(CoronavirusData.NewCases)))
+                .DetectSpike();
 
         }
 
