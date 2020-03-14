@@ -5,11 +5,6 @@ using System.IO;
 using System.Linq;
 using Microsoft.ML;
 
-public class AnomalyDetectorBase
-{
-
-}
-
 public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<TInputType, TAnomalyOutputType>
     where TInputType : class, new()
     where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
