@@ -45,21 +45,21 @@ public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<
         return this;
     }
 
-    protected virtual IEnumerable<string> getColumnNames() => GetProps(typeof(TAnomalyOutputType));
-    private IEnumerable<string> GetProps(Type? type)
+    private IEnumerable<string> getColumnNames() => GetPropertiesAndFields(typeof(TAnomalyOutputType))
+                .Where(prop => prop.name != nameof(IAnomalyDetectionOutput.Prediction))
+                .Select(x => x.name);
+
+    private IEnumerable<(string name, object? value)> GetPropertiesAndFields(Type type, object instance = null)
     {
-        if (!(type is null))
-            foreach (var propName in 
-                (
-                    (type.GetProperties()?.Select(x => x.Name) ?? Enumerable.Empty<string>())
-                    .Concat(type.GetFields()?.Select(x => x.Name) ?? Enumerable.Empty<string>()))
-                    .Where(prop => prop != nameof(IAnomalyDetectionOutput.Prediction))
-                )
-                yield return propName;
+        foreach (var typeItemTuple in
+                (type.GetProperties()?.Select(x => (x.Name, instance != null ? x.GetValue(instance) : null)))
+                .Concat(type.GetFields()?.Select(x => (x.Name, instance != null ? x.GetValue(instance) : null)))
+        )
+        yield return typeItemTuple;
     }
     private string getColumnValuesString(IEnumerable<string> columnNames, TAnomalyOutputType dataRow) =>
-        string.Join('\t', dataRow.GetType().GetProperties().Where(prop => columnNames.Contains(prop.Name)).Select(x => x.GetValue(dataRow)));
-    
+        string.Join('\t', GetPropertiesAndFields(typeof(TAnomalyOutputType), dataRow).Where(prop => columnNames.Contains(prop.name)).Select(x => x.value));
+
 
     /// <summary>
     /// The goal of spike detection is to identify sudden yet temporary bursts that significantly differ from the majority of the time series data values.
@@ -154,5 +154,5 @@ public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<
 
 public class AnomalyDetector<TAnomalyOutputType> : AnomalyDetector<TAnomalyOutputType, TAnomalyOutputType> where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
 {
-    protected AnomalyDetector(MLContext mlContext) : base(mlContext) {}
+    protected AnomalyDetector(MLContext mlContext) : base(mlContext) { }
 }
