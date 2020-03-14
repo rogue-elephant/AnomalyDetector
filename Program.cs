@@ -16,7 +16,7 @@ namespace Covid19Analyser
 
             var filePath = Path.Combine(_dataPath, "full_data.csv");
 
-            AnomalyDetector<CoronavirusData, CoronavirusPrediction>
+            AnomalyDetector<CoronavirusPrediction, CoronavirusPrediction>
                 .SetContext()
                 .LoadDataFromFile(filePath)
                 .ManipulateData(data => {

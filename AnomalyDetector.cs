@@ -152,7 +152,7 @@ public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<
     }
 }
 
-public class AnomalyDetector<TAnomalyOutputType> : AnomalyDetector<TAnomalyOutputType, TAnomalyOutputType> where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
-{
-    protected AnomalyDetector(MLContext mlContext) : base(mlContext) { }
-}
+// public class AnomalyDetector<TAnomalyOutputType> : AnomalyDetector<TAnomalyOutputType, TAnomalyOutputType> where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
+// {
+//     protected AnomalyDetector(MLContext mlContext) : base(mlContext) { }
+// }
