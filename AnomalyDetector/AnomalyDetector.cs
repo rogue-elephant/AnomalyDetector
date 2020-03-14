@@ -26,12 +26,13 @@ namespace AnomalyDetector
         public IAnomalyDetectorSetOptions<TInputType> LoadData(IEnumerable<TInputType> data)
         {
             _data = data;
+            _dataView = _mlContext.Data.LoadFromEnumerable(_data);
             return this;
         }
         public IAnomalyDetectorSetOptions<TInputType> LoadDataFromFile(string path, bool hasHeaders = true, char seperator = ',')
         {
-            _dataView = _mlContext.Data.LoadFromTextFile<TInputType>(path: path, hasHeader: hasHeaders, separatorChar: seperator);
-            return LoadData(_mlContext.Data.CreateEnumerable<TInputType>(_dataView, reuseRowObject: false));
+            var fileData = _mlContext.Data.LoadFromTextFile<TInputType>(path: path, hasHeader: hasHeaders, separatorChar: seperator);
+            return LoadData(_mlContext.Data.CreateEnumerable<TInputType>(fileData, reuseRowObject: false));
         }
 
         public IAnomalyDetectorDetection<TInputType> SetOptions(AnomalyDetectorOptions options)
@@ -40,9 +41,9 @@ namespace AnomalyDetector
             return this;
         }
 
-        public IAnomalyDetectorDetection<TInputType> ManipulateData(Action<IEnumerable<TInputType>> action)
+        public IAnomalyDetectorDetection<TInputType> ManipulateData(Func<IEnumerable<TInputType>, IEnumerable<TInputType>> manipulations)
         {
-            action(_data);
+            LoadData(manipulations(_data));
             return this;
         }
 

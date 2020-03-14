@@ -20,13 +20,12 @@ namespace AnomalyDetector.CLI
             AnomalyDetector<CoronavirusData, CoronavirusPrediction>
                 .SetContext()
                 .LoadDataFromFile(filePath)
-                .ManipulateData(data => {
-                        data = from dailyCounts in data
+                .ManipulateData(data =>
+                        from dailyCounts in data
                         where dailyCounts.Location == "Worldwide"
                         let parsedDate = DateTime.Parse(dailyCounts.Date)
                         orderby parsedDate
-                        select dailyCounts;
-                    })
+                        select dailyCounts)
                 .SetOptions(new AnomalyDetectorOptions(nameof(CoronavirusData.NewCases)))
                 .DetectSpike();
 
