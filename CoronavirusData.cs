@@ -17,7 +17,7 @@ public class CoronavirusData
     public Single TotalDeaths;
 }
 
-public class CoronavirusPrediction
+public class CoronavirusPrediction : CoronavirusData, IAnomalyDetectionOutput
 {
     [VectorType(3)]
     public double[] Prediction { get; set; }

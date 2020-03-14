@@ -1,19 +1,35 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.ML.Data;
 
-public interface IAnomalyDetectorSetOptions
+public interface IAnomalyDetector<TInputType, TAnomalyOutputType> :
+    IAnomalyDetectorLoadData<TInputType>,
+    IAnomalyDetectorSetOptions<TInputType>,
+    IAnomalyDetectorDetection<TInputType>
+    where TInputType : class, new()
+    where TAnomalyOutputType : class, IAnomalyDetectionOutput, new()
 {
-    IAnomalyDetectorDetection SetOptions(AnomalyOptions options);
 }
 
-public interface IAnomalyDetectorLoadData<TData>
+public interface IAnomalyDetectorLoadData<TInputType>
 {
-    IAnomalyDetectorSetOptions LoadDataFromFile(string path, bool hasHeaders = true, char seperator = ',');
-    IAnomalyDetectorSetOptions LoadData(IEnumerable<TData> data);
+    IAnomalyDetectorSetOptions<TInputType> LoadDataFromFile(string path, bool hasHeaders = true, char seperator = ',');
+    IAnomalyDetectorSetOptions<TInputType> LoadData(IEnumerable<TInputType> data);
+}
+public interface IAnomalyDetectorSetOptions<TInputType>
+{
+    IAnomalyDetectorDetection<TInputType> SetOptions(AnomalyOptions options);
+    IAnomalyDetectorDetection<TInputType> ManipulateData(Action<IEnumerable<TInputType>> manipulations);
 }
 
-public interface IAnomalyDetectorDetection : IAnomalyDetectorSetOptions
+public interface IAnomalyDetectorDetection<TInputType> : IAnomalyDetectorSetOptions<TInputType>
 {
-    IAnomalyDetectorDetection DetectSpike(TextWriter output);
-    IAnomalyDetectorDetection DetectChangepoint(TextWriter output);
+    IAnomalyDetectorDetection<TInputType> DetectSpike(TextWriter output);
+    IAnomalyDetectorDetection<TInputType> DetectChangepoint(TextWriter output);
+}
+
+public interface IAnomalyDetectionOutput
+{
+    double[] Prediction { get; set; }
 }
