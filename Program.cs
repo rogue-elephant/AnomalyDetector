@@ -16,7 +16,7 @@ namespace Covid19Analyser
 
             var filePath = Path.Combine(_dataPath, "full_data.csv");
 
-            AnomalyDetector<CoronavirusPrediction, CoronavirusPrediction>
+            AnomalyDetector<CoronavirusData, CoronavirusPrediction>
                 .SetContext()
                 .LoadDataFromFile(filePath)
                 .ManipulateData(data => {
@@ -25,7 +25,7 @@ namespace Covid19Analyser
                         orderby parsedDate
                         select dailyCounts;
                     })
-                .SetOptions(new AnomalyOptions(nameof(CoronavirusData.NewCases), "Prediction"))
+                .SetOptions(new AnomalyOptions(nameof(CoronavirusData.NewCases)))
                 .DetectSpike(Console.Out);
 
         }
