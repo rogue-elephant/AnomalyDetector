@@ -72,7 +72,7 @@ public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<
 
         // STEP 2: Set the training algorithm
         var iidSpikeEstimator = _mlContext.Transforms
-        .DetectIidSpike(outputColumnName: _options.OutputColumnName, inputColumnName: _options.InputColumnName,
+        .DetectIidSpike(outputColumnName: nameof(IAnomalyDetectionOutput.Prediction), inputColumnName: _options.InputColumnName,
         confidence: 95, pvalueHistoryLength: _data.Count() / 4);
 
         // STEP 3: Create the transform
@@ -116,7 +116,7 @@ public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<
 
         //STEP 2: Set the training algorithm 
         var iidChangePointEstimator = _mlContext.Transforms
-            .DetectIidChangePoint(outputColumnName: _options.OutputColumnName, inputColumnName: _options.InputColumnName, confidence: 95,
+            .DetectIidChangePoint(outputColumnName: nameof(IAnomalyDetectionOutput.Prediction), inputColumnName: _options.InputColumnName, confidence: 95,
             changeHistoryLength: _data.Count() / 4);
 
         //STEP 3: Create the transform
@@ -147,7 +147,7 @@ public class AnomalyDetector<TInputType, TAnomalyOutputType> : IAnomalyDetector<
     static IDataView CreateEmptyDataView(MLContext mlContext)
     {
         // Create empty DataView. We just need the schema to call Fit() for the time series transforms
-        IEnumerable<TAnomalyOutputType> enumerableData = new List<TAnomalyOutputType>();
+        IEnumerable<TInputType> enumerableData = new List<TInputType>();
         return mlContext.Data.LoadFromEnumerable(enumerableData);
     }
 }
