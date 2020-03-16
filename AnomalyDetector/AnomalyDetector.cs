@@ -60,7 +60,7 @@ namespace AnomalyDetector
                 yield return typeItemTuple;
         }
         private string getColumnValuesString(IEnumerable<string> columnNames, TAnomalyOutputType dataRow) =>
-            string.Join('\t', GetPropertiesAndFields(typeof(TAnomalyOutputType), dataRow).Where(prop => columnNames.Contains(prop.name)).Select(x => x.value));
+            string.Join("\t", GetPropertiesAndFields(typeof(TAnomalyOutputType), dataRow).Where(prop => columnNames.Contains(prop.name)).Select(x => x.value));
 
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace AnomalyDetector
 
             var columnNames = getColumnNames().ToList();
 
-            _output.WriteLine($"Alert\t{string.Join('\t', columnNames)}\tScore\tP-Value");
+            _output.WriteLine($"Alert\t{string.Join("\t", columnNames)}\tScore\tP-Value");
 
             foreach (var p in predictions)
             {
