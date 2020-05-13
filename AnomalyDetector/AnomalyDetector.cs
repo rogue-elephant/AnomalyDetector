@@ -72,12 +72,10 @@ namespace AnomalyDetector
         {
             _output.WriteLine("Detect temporary changes in pattern");
 
-            // STEP 2: Set the training algorithm
             var iidSpikeEstimator = _mlContext.Transforms
             .DetectIidSpike(outputColumnName: nameof(IAnomalyDetectionOutput.Prediction), inputColumnName: _options.InputColumnName,
             confidence: 95, pvalueHistoryLength: _data.Count() / 4);
 
-            // STEP 3: Create the transform
             // Create the spike detection transform
             _output.WriteLine("=============== Training the model ===============");
             ITransformer iidSpikeTransform = iidSpikeEstimator.Fit(CreateEmptyDataView(_mlContext));
@@ -116,12 +114,10 @@ namespace AnomalyDetector
         {
             _output.WriteLine("Detect Persistent changes in pattern");
 
-            //STEP 2: Set the training algorithm 
             var iidChangePointEstimator = _mlContext.Transforms
                 .DetectIidChangePoint(outputColumnName: nameof(IAnomalyDetectionOutput.Prediction), inputColumnName: _options.InputColumnName, confidence: 95,
                 changeHistoryLength: _data.Count() / 4);
 
-            //STEP 3: Create the transform
             _output.WriteLine("=============== Training the model Using Change Point Detection Algorithm===============");
             var iidChangePointTransform = iidChangePointEstimator.Fit(CreateEmptyDataView(_mlContext));
             _output.WriteLine("=============== End of training process ===============");
